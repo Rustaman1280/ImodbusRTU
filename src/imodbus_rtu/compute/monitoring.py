@@ -180,10 +180,12 @@ def monitor_slave_registers(
     started_at: datetime | None = None,
     sleep_fn: Callable[[float], None] = time.sleep,
 ) -> MonitoringRun:
+    register_list = list(registers)
+
     dataframe = build_run_dataframe(
         run_name=run_name,
         slave_id=slave_id,
-        registers=registers,
+        registers=register_list,
         duration_minutes=duration_minutes,
         reader=reader,
         sample_every_seconds=sample_every_seconds,
@@ -195,7 +197,7 @@ def monitor_slave_registers(
         database_path=database_path,
         run_name=run_name,
         slave_id=slave_id,
-        registers=registers,
+        registers=register_list,
         sample_every_seconds=sample_every_seconds,
         duration_minutes=duration_minutes,
         table_name=table_name,

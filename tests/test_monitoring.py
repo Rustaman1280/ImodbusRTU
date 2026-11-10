@@ -6,6 +6,7 @@ import pytest
 from imodbus_rtu.compute.monitoring import (
     build_run_dataframe,
     load_run_dataframe,
+    monitor_slave_registers,
     sanitize_table_name,
     save_run_dataframe,
     table_exists,
@@ -199,6 +200,27 @@ class TestSaveAndLoadRoundtrip:
                 "SELECT run_name, table_name FROM experiment_runs WHERE run_name = 'test run'"
             ).fetchone()
         assert meta == ("test run", "run_test_run")
+
+    def test_monitoring_preserves_generator_registers_in_metadata(self, database_path):
+        registers = (register for register in [2, 4])
+        run = monitor_slave_registers(
+            run_name="generator_run",
+            slave_id=1,
+            registers=registers,
+            duration_minutes=1,
+            reader=FakeReader(),
+            database_path=database_path,
+            sample_every_seconds=60,
+            sleep_fn=lambda seconds: None,
+        )
+
+        assert {"register_2", "register_4"}.issubset(run.dataframe.columns)
+        with sqlite3.connect(database_path) as connection:
+            metadata = connection.execute(
+                "SELECT registers FROM experiment_runs WHERE run_name = ?",
+                ("generator_run",),
+            ).fetchone()
+        assert metadata == ("2,4",)
 
     def test_load_missing_table_raises_friendly_error(self, database_path):
         with pytest.raises(ValueError, match="no existe"):
